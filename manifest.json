@@ -1,0 +1,33 @@
+{
+  "name": "Moodle Downloader (DHBW Ravensburg)",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "description": "Lädt alle Dateien (pluginfile.php) aus einer Moodle-Kursseite in einen Ordner herunter.",
+  "permissions": [
+    "downloads",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://elearning.dhbw-ravensburg.de/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Moodle Downloader",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://elearning.dhbw-ravensburg.de/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,93 +1,27 @@
-# Moodle Course Downloader (Chrome Extension)
+# Moodle Downloader (DHBW Ravensburg) – Chrome Extension
 
-A lightweight Chrome extension that allows students to download all files from a Moodle course page into a single local folder with one click.
+**Domain:** https://elearning.dhbw-ravensburg.de/  
+**Option A:** alle Dateien in einen Ordner (unter deinem normalen Downloads-Ordner)
 
-# Features
+## Installation (Windows / Chrome)
 
-One-click download of all course files
+1. Entpacke dieses Projekt (oder ZIP) in einen Ordner.
+2. Öffne Chrome: `chrome://extensions`
+3. Schalte **Entwicklermodus** ein (rechts oben).
+4. Klicke **Entpackte Erweiterung laden** und wähle den Projektordner.
 
-Automatically detects Moodle file links (pluginfile.php)
+## Benutzung
 
-Supports indirect resource links (mod/resource/view.php)
+1. Logge dich in Moodle ein und öffne eine Kursseite (z.B. `.../course/view.php?id=...`).
+2. Klicke auf das Extension-Icon (Puzzle/Toolbar).
+3. **Scan aktuelle Seite** → es werden Links gefunden.
+4. Optional: Ordnernamen anpassen.
+5. **Download alle Dateien**.
 
-Saves everything into a single folder
+### Hinweise / typische Stolpersteine
 
-Uses your existing Moodle login session
-
-No credentials stored or transmitted
-
-# How It Works
-
-Open a Moodle course page.
-
-Click the extension icon.
-
-Click Scan to detect files.
-
-Click Download all files.
-
-All files will be downloaded into a single folder inside your default Chrome download directory.
-
-# Installation (Developer Mode)
-
-Download or clone this repository.
-
-Extract the project folder.
-
-Open Chrome and go to:
-
-chrome://extensions
-
-
-Enable Developer mode (top right).
-
-Click Load unpacked.
-
-Select the extension folder.
-
-The extension icon should now appear in your Chrome toolbar.
-
-# Usage
-
-Log in to your Moodle platform.
-
-Open the desired course page.
-
-Click the extension icon.
-
-Click Scan.
-
-Click Download.
-
-All detected files will be downloaded automatically.
-
-# Requirements
-
-Google Chrome (Manifest V3 compatible version)
-
-Active Moodle session (logged in)
-
-Folder Structure
-moodle-downloader/
-│
-├── manifest.json
-├── background.js
-├── content.js
-├── popup.html
-└── popup.js
-
-# Notes
-
-For smoother operation, disable:
-
-Chrome Settings → Downloads → Ask where to save each file before downloading
-
-
-The extension relies on your active Moodle login.
-If you are logged out, downloads may fail.
-
-# Disclaimer
-
-This tool is intended for personal academic use only.
-Users are responsible for complying with their institution’s terms of service and applicable copyright laws.
-
+- In Chrome ist es am besten, wenn **"Vor jedem Download nach Speicherort fragen"** deaktiviert ist,
+  sonst bekommst du viele Dialoge.
+- Die Extension lädt primär `pluginfile.php`-Links (Moodle-Dateien).
+- Falls ein Element nur als `mod/resource/view.php` oder `mod/folder/view.php` verlinkt ist,
+  versucht die Extension die Seite zu laden und darin die `pluginfile.php`-Links zu extrahieren.
