@@ -4,30 +4,142 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; width: 360px; padding: 12px; }
-    h1 { font-size: 14px; margin: 0 0 8px 0; }
-    button { width: 100%; padding: 10px; margin: 8px 0; cursor: pointer; }
-    input { width: 100%; padding: 8px; box-sizing: border-box; }
-    .row { margin: 8px 0; }
-    #status { font-size: 12px; opacity: 0.85; margin-top: 6px; }
-    ul { max-height: 170px; overflow: auto; padding-left: 18px; margin: 8px 0 0 0; }
-    li { font-size: 12px; margin: 3px 0; }
-    .hint { font-size: 12px; opacity: 0.75; }
+    :root {
+      --fg: #000;
+      --bg: #fff;
+      --dim: #767676;
+      --line: #000;
+      --hair: #d9d9d9;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #fff; --bg: #000; --dim: #8c8c8c; --line: #fff; --hair: #2e2e2e; }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 340px;
+      background: var(--bg);
+      color: var(--fg);
+      font: 13px/1.4 var(--sans);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 14px 16px 10px;
+      border-bottom: 2px solid var(--line);
+    }
+    h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+    header span { font: 11px var(--mono); color: var(--dim); }
+
+    main { padding: 16px; }
+
+    label { display: block; font: 11px var(--mono); color: var(--dim); margin-bottom: 4px; }
+    input {
+      width: 100%;
+      padding: 6px 0;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+      color: var(--fg);
+      font: 13px var(--sans);
+      outline: none;
+    }
+    input::placeholder { color: var(--dim); }
+    input:focus { border-bottom-width: 2px; padding-bottom: 5px; }
+
+    .actions { display: flex; margin-top: 18px; }
+    button {
+      flex: 1;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 600 12px var(--sans);
+      text-align: left;
+      cursor: pointer;
+    }
+    button + button { border-left: 0; }
+    button:hover:not(:disabled) { background: var(--fg); color: var(--bg); }
+    button:disabled { color: var(--dim); cursor: default; }
+    button b { font: 400 11px var(--mono); margin-right: 6px; }
+
+    .status-card { margin-top: 18px; }
+    .status-card[hidden] { display: none; }
+    #status { font: 12px var(--mono); }
+    #status.err::before { content: "! "; font-weight: 700; }
+    #status.ok::before { content: "✓ "; }
+
+    .bar { height: 2px; margin-top: 8px; background: var(--hair); }
+    .bar[hidden] { display: none; }
+    .bar > span { display: block; height: 100%; width: 0; background: var(--fg); }
+
+    ul {
+      list-style: none;
+      counter-reset: n;
+      margin: 12px 0 0; padding: 0;
+      max-height: 180px; overflow: auto;
+      border-top: 1px solid var(--line);
+    }
+    ul:empty { display: none; }
+    li {
+      counter-increment: n;
+      display: flex;
+      gap: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--hair);
+      font-size: 12px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    li::before {
+      content: counter(n, decimal-leading-zero);
+      font: 11px var(--mono);
+      color: var(--dim);
+      flex: none;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 16px 10px;
+      border-top: 1px solid var(--hair);
+      font: 10px var(--mono);
+      color: var(--dim);
+    }
   </style>
 </head>
 <body>
-  <h1>Moodle Downloader</h1>
+  <header>
+    <h1>Moodle Downloader</h1>
+    <span>DHBW RV</span>
+  </header>
 
-  <div class="row">
-    <div class="hint">Zielordner (unter Downloads):</div>
-    <input id="folder" type="text" placeholder="Moodle-Kurs" />
-  </div>
+  <main>
+    <label for="folder">Zielordner</label>
+    <input id="folder" type="text" placeholder="Downloads/…" />
 
-  <button id="scan">1) Scan aktuelle Seite</button>
-  <button id="download" disabled>2) Download alle Dateien</button>
+    <div class="actions">
+      <button id="scan"><b>1</b>Scannen</button>
+      <button id="download" disabled><b>2</b>Herunterladen</button>
+    </div>
 
-  <div id="status"></div>
-  <ul id="list"></ul>
+    <div class="status-card" id="statusCard" hidden>
+      <div id="status"></div>
+      <div class="bar" id="bar" hidden><span id="barFill"></span></div>
+      <ul id="list"></ul>
+    </div>
+  </main>
+
+  <footer>
+    <span>Roman Benz</span>
+    <span>v1.0</span>
+  </footer>
 
   <script src="popup.js"></script>
 </body>

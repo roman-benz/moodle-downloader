@@ -33,11 +33,32 @@ function withParam(url, key, value) {
   return u.toString();
 }
 
+const FETCH_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(url, ms = FETCH_TIMEOUT_MS) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { credentials: "include", signal: ctrl.signal });
+    // Body nicht laden – wir brauchen nur die finale URL nach den Redirects
+    try { res.body?.cancel(); } catch {}
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function setProgress(patch) {
+  const { mdlProgress = {} } = await chrome.storage.local.get("mdlProgress");
+  await chrome.storage.local.set({ mdlProgress: { ...mdlProgress, ...patch, updatedAt: Date.now() } });
+}
+
 async function resolveToDownloadUrls(items) {
   const out = [];
 
-  for (const it of items) {
+  for (const [i, it] of items.entries()) {
     const url = it.url;
+    await setProgress({ phase: "resolve", done: i, total: items.length });
 
     // Direkte Datei-URL
     if (url.includes("/pluginfile.php/")) {
@@ -52,7 +73,7 @@ async function resolveToDownloadUrls(items) {
 
       try {
         // fetch folgt Redirects automatisch; final URL steht in res.url
-        const res = await fetch(direct, { credentials: "include" });
+        const res = await fetchWithTimeout(direct);
         console.log("Fetch status:", res.status, "final url:", res.url);
 
         if (res.url && res.url.includes("/pluginfile.php/")) {
@@ -107,39 +128,56 @@ async function downloadOne(url, folderName, title) {
   });
 }
 
+let running = false;
+
+async function downloadAll(items, folderName) {
+  // Hält den Service Worker während des Jobs wach (API-Aufrufe setzen den Idle-Timer zurück)
+  const keepAlive = setInterval(() => chrome.runtime.getPlatformInfo(), 20000);
+  try {
+    console.log("Start downloadAll. items:", items.length, "folder:", folderName);
+    await setProgress({ running: true, phase: "resolve", done: 0, total: items.length, ok: 0, error: null });
+
+    const resolved = await resolveToDownloadUrls(items);
+    console.log("Resolved total:", resolved.length);
+
+    let ok = 0;
+    for (const [i, it] of resolved.entries()) {
+      await setProgress({ phase: "download", done: i, total: resolved.length, ok });
+      try {
+        await downloadOne(it.url, folderName, it.title);
+        ok++;
+        await new Promise(r => setTimeout(r, 250)); // Server schonen
+      } catch (e) {
+        console.warn("Download failed:", it.url, e);
+      }
+    }
+
+    console.log("Done. ok:", ok, "of", resolved.length);
+    await setProgress({ running: false, phase: "done", done: resolved.length, total: resolved.length, ok });
+  } catch (e) {
+    console.error("Fatal:", e);
+    await setProgress({ running: false, phase: "error", error: String(e) });
+  } finally {
+    clearInterval(keepAlive);
+    running = false;
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   console.log("SW got message:", msg);
 
   if (msg?.type !== "MDL_DOWNLOAD_ALL") return;
 
-  (async () => {
-    try {
-      const items = msg.items || msg.links || [];
-      const folderName = msg.folderName || "Moodle-Kurs";
+  if (running) {
+    sendResponse({ ok: false, error: "Download läuft bereits" });
+    return;
+  }
+  running = true;
 
-      console.log("Start downloadAll. items:", items.length, "folder:", folderName);
+  const items = msg.items || msg.links || [];
+  const folderName = msg.folderName || "Moodle-Kurs";
 
-      const resolved = await resolveToDownloadUrls(items);
-      console.log("Resolved total:", resolved.length);
-
-      let ok = 0;
-      for (const it of resolved) {
-        try {
-          await downloadOne(it.url, folderName, it.title);
-          ok++;
-          await new Promise(r => setTimeout(r, 250)); // Server schonen
-        } catch (e) {
-          console.warn("Download failed:", it.url, e);
-        }
-      }
-
-      console.log("Done. ok:", ok, "of", resolved.length);
-      sendResponse({ ok: true, okCount: ok, total: resolved.length });
-    } catch (e) {
-      console.error("Fatal:", e);
-      sendResponse({ ok: false, error: String(e) });
-    }
-  })();
-
-  return true; // async response
+  // Sofort antworten – Fortschritt läuft über chrome.storage
+  sendResponse({ ok: true, started: true });
+  downloadAll(items, folderName);
 });
